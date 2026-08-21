@@ -1,0 +1,50 @@
+mod components;
+mod sidebar;
+mod theme;
+mod toolbar;
+mod viewport;
+
+use crate::app::CellSight;
+use gpui::{Context, IntoElement, Render, Window, div, prelude::*, rgb};
+use theme::TEXT;
+
+impl Render for CellSight {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // RenderImage textures are keyed by a unique ID in GPUI's sprite atlas.
+        // Camera frames therefore have to be retired explicitly or the atlas
+        // eventually fills and leaves the viewport displaying a stale frame.
+        if let Some(latest_frame) = self.camera_frame.clone()
+            && self.current_rendered_frame.as_ref().map(|frame| frame.id) != Some(latest_frame.id)
+        {
+            if let Some(current_frame) = self.current_rendered_frame.take() {
+                if let Some(previous_frame) = self.previous_rendered_frame.take()
+                    && previous_frame.id != current_frame.id
+                {
+                    let _ = window.drop_image(previous_frame);
+                }
+                self.previous_rendered_frame = Some(current_frame);
+            }
+            self.current_rendered_frame = Some(latest_frame);
+        }
+
+        let toolbar = toolbar::render(self, cx);
+        let sidebar = sidebar::render(self, cx);
+        let viewport = viewport::render(self, cx);
+        div()
+            .size_full()
+            .flex()
+            .flex_col()
+            .bg(rgb(0x0d1116))
+            .text_color(rgb(TEXT))
+            .font_family("Inter")
+            .child(toolbar)
+            .child(
+                div()
+                    .flex()
+                    .flex_1()
+                    .min_h_0()
+                    .child(sidebar)
+                    .child(viewport),
+            )
+    }
+}
