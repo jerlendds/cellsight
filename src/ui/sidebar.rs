@@ -1,8 +1,10 @@
-use super::{
-    components::{button, section_header, selector, slider, text_input},
-    theme::{BORDER, PANEL},
-};
+use super::theme::{BORDER, PANEL};
 use crate::app::{CellSight, Dropdown};
+use cellsight_button::button;
+use cellsight_section_header::section_header;
+use cellsight_selector::selector;
+use cellsight_slider::slider;
+use cellsight_text_input::text_input;
 use gpui::{
     Animation, AnimationExt, Context, IntoElement, div, ease_out_quint, prelude::*, px, rgb,
 };
@@ -36,12 +38,21 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 .child(selector(
                     "camera-select",
                     "Device",
-                    Dropdown::Camera,
                     app.open_dropdown == Some(Dropdown::Camera),
                     app.cameras.clone(),
                     app.camera,
                     cx,
-                    |s, index| s.camera = index,
+                    |s| {
+                        s.open_dropdown = if s.open_dropdown == Some(Dropdown::Camera) {
+                            None
+                        } else {
+                            Some(Dropdown::Camera)
+                        }
+                    },
+                    |s, index| {
+                        s.camera = index;
+                        s.open_dropdown = None;
+                    },
                 ))
                 .child(button(
                     "stream-toggle",
@@ -88,27 +99,44 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 .child(selector(
                     "format-select",
                     "Format",
-                    Dropdown::Format,
                     app.open_dropdown == Some(Dropdown::Format),
                     app.formats.clone(),
                     app.format,
                     cx,
-                    |s, index| s.format = index,
+                    |s| {
+                        s.open_dropdown = if s.open_dropdown == Some(Dropdown::Format) {
+                            None
+                        } else {
+                            Some(Dropdown::Format)
+                        }
+                    },
+                    |s, index| {
+                        s.format = index;
+                        s.open_dropdown = None;
+                    },
                 ))
                 .child(selector(
                     "resolution-select",
                     "Resolution",
-                    Dropdown::Resolution,
                     app.open_dropdown == Some(Dropdown::Resolution),
                     app.resolutions.clone(),
                     app.resolution,
                     cx,
-                    |s, index| s.resolution = index,
+                    |s| {
+                        s.open_dropdown = if s.open_dropdown == Some(Dropdown::Resolution) {
+                            None
+                        } else {
+                            Some(Dropdown::Resolution)
+                        }
+                    },
+                    |s, index| {
+                        s.resolution = index;
+                        s.open_dropdown = None;
+                    },
                 ))
                 .child(selector(
                     "fps-select",
                     "Frame rate",
-                    Dropdown::FrameRate,
                     app.open_dropdown == Some(Dropdown::FrameRate),
                     app.fps_values
                         .iter()
@@ -116,7 +144,17 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                         .collect(),
                     app.fps,
                     cx,
-                    |s, index| s.fps = index,
+                    |s| {
+                        s.open_dropdown = if s.open_dropdown == Some(Dropdown::FrameRate) {
+                            None
+                        } else {
+                            Some(Dropdown::FrameRate)
+                        }
+                    },
+                    |s, index| {
+                        s.fps = index;
+                        s.open_dropdown = None;
+                    },
                 ))
                 .with_animation(
                     "capture-reveal",

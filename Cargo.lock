@@ -808,6 +808,13 @@ dependencies = [
 name = "cellsight"
 version = "0.1.0"
 dependencies = [
+ "cellsight-button",
+ "cellsight-icon-button",
+ "cellsight-icon-only-button",
+ "cellsight-section-header",
+ "cellsight-selector",
+ "cellsight-slider",
+ "cellsight-text-input",
  "gpui",
  "gpui_platform",
  "image",
@@ -818,6 +825,55 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "x11rb 0.14.0",
+]
+
+[[package]]
+name = "cellsight-button"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-icon-button"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-icon-only-button"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-section-header"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-selector"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-slider"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-text-input"
+version = "0.1.0"
+dependencies = [
+ "gpui",
 ]
 
 [[package]]

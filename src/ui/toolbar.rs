@@ -1,8 +1,7 @@
-use super::{
-    components::{icon_button, icon_only_button},
-    theme::{ACCENT, BORDER, MUTED, PANEL},
-};
+use super::theme::{ACCENT, BORDER, MUTED, PANEL};
 use crate::app::{CellSight, Tool};
+use cellsight_icon_button::icon_button;
+use cellsight_icon_only_button::icon_only_button;
 use gpui::{Context, IntoElement, div, prelude::*, px, rgb};
 
 pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoElement + use<> {

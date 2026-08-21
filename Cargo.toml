@@ -3,12 +3,31 @@ name = "cellsight"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+exclude = ["zed"]
+members = [
+    "crates/button",
+    "crates/icon-button",
+    "crates/icon-only-button",
+    "crates/section-header",
+    "crates/selector",
+    "crates/slider",
+    "crates/text-input",
+]
+
 [features]
 default = ["wayland", "x11"]
 wayland = ["gpui/wayland", "gpui_platform/wayland"]
 x11 = ["gpui/x11", "gpui_platform/x11"]
 
 [dependencies]
+cellsight-button = { path = "crates/button" }
+cellsight-icon-button = { path = "crates/icon-button" }
+cellsight-icon-only-button = { path = "crates/icon-only-button" }
+cellsight-section-header = { path = "crates/section-header" }
+cellsight-selector = { path = "crates/selector" }
+cellsight-slider = { path = "crates/slider" }
+cellsight-text-input = { path = "crates/text-input" }
 gpui = { path = "zed/crates/gpui", default-features = false }
 gpui_platform = { path = "zed/crates/gpui_platform", default-features = false }
 image = { version = "0.25", default-features = false, features = ["jpeg"] }

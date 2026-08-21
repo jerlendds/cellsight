@@ -1,4 +1,3 @@
-mod components;
 mod sidebar;
 mod theme;
 mod toolbar;
