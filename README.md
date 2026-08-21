@@ -7,6 +7,13 @@
 ---
 
 This is a work in progress... come back later :)
+<!-- 
+## Features
+
+- USB camera support
+- Gain & Exposure
+- Focus sweep
+- todo... expand.... -->
 
 ## Preview Screenshots
 

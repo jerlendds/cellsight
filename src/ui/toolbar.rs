@@ -1,6 +1,5 @@
 use super::theme::{ACCENT, BORDER, MUTED, PANEL};
 use crate::app::{CellSight, Tool};
-use cellsight_icon_button::icon_button;
 use cellsight_icon_only_button::icon_only_button;
 use gpui::{Context, IntoElement, div, prelude::*, px, rgb};
 
@@ -77,31 +76,19 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 )),
         )
         .child(
-            div()
-                .flex()
-                .items_center()
-                .gap_3()
-                .child(
-                    div()
-                        .flex()
-                        .items_center()
-                        .gap_2()
-                        .text_xs()
-                        .text_color(rgb(MUTED))
-                        .child(div().size(px(7.)).rounded_full().bg(if app.streaming {
-                            rgb(0x55d68b)
-                        } else {
-                            rgb(0x68717c)
-                        }))
-                        .child(if app.streaming { "LIVE" } else { "OFFLINE" }),
-                )
-                .child(icon_button(
-                    "record",
-                    if app.recording { "■" } else { "●" },
-                    if app.recording { "Stop" } else { "Record" },
-                    app.recording,
-                    cx,
-                    |s| s.recording = !s.recording,
-                )),
+            div().flex().items_center().gap_3().child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap_2()
+                    .text_xs()
+                    .text_color(rgb(MUTED))
+                    .child(div().size(px(7.)).rounded_full().bg(if app.streaming {
+                        rgb(0x55d68b)
+                    } else {
+                        rgb(0x68717c)
+                    }))
+                    .child(if app.streaming { "LIVE" } else { "OFFLINE" }),
+            ),
         )
 }

@@ -15,11 +15,7 @@ fn main() {
                 focus: true,
                 ..Default::default()
             },
-            |_, cx| {
-                let view = cx.new(|_| CellSight::new());
-                view.update(cx, |view, cx| view.start_camera(cx));
-                view
-            },
+            |_, cx| cx.new(|_| CellSight::new()),
         )
         .unwrap();
         cx.on_window_closed(|cx, _| cx.quit()).detach();

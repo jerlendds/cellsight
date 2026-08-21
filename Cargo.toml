@@ -9,6 +9,8 @@ members = [
     "crates/button",
     "crates/icon-button",
     "crates/icon-only-button",
+    "crates/info-channel",
+    "crates/focus-profile",
     "crates/section-header",
     "crates/selector",
     "crates/slider",
@@ -24,13 +26,15 @@ x11 = ["gpui/x11", "gpui_platform/x11"]
 cellsight-button = { path = "crates/button" }
 cellsight-icon-button = { path = "crates/icon-button" }
 cellsight-icon-only-button = { path = "crates/icon-only-button" }
+cellsight-info-channel = { path = "crates/info-channel" }
+cellsight-focus-profile = { path = "crates/focus-profile" }
 cellsight-section-header = { path = "crates/section-header" }
 cellsight-selector = { path = "crates/selector" }
 cellsight-slider = { path = "crates/slider" }
 cellsight-text-input = { path = "crates/text-input" }
 gpui = { path = "zed/crates/gpui", default-features = false }
 gpui_platform = { path = "zed/crates/gpui_platform", default-features = false }
-image = { version = "0.25", default-features = false, features = ["jpeg"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 raw-window-handle = "0.6.2"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"

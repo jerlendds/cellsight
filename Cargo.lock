@@ -809,8 +809,10 @@ name = "cellsight"
 version = "0.1.0"
 dependencies = [
  "cellsight-button",
+ "cellsight-focus-profile",
  "cellsight-icon-button",
  "cellsight-icon-only-button",
+ "cellsight-info-channel",
  "cellsight-section-header",
  "cellsight-selector",
  "cellsight-slider",
@@ -835,6 +837,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cellsight-focus-profile"
+version = "0.1.0"
+dependencies = [
+ "image",
+]
+
+[[package]]
 name = "cellsight-icon-button"
 version = "0.1.0"
 dependencies = [
@@ -843,6 +852,13 @@ dependencies = [
 
 [[package]]
 name = "cellsight-icon-only-button"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-info-channel"
 version = "0.1.0"
 dependencies = [
  "gpui",

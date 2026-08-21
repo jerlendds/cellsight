@@ -37,6 +37,32 @@ impl Render for CellSight {
             .text_color(rgb(TEXT))
             .font_family("Inter")
             .child(toolbar)
+            .child(if self.focus_processing {
+                div()
+                    .relative()
+                    .h(gpui::px(22.))
+                    .flex_none()
+                    .flex()
+                    .items_center()
+                    .px_4()
+                    .bg(rgb(0x11151a))
+                    .text_xs()
+                    .child(
+                        div()
+                            .absolute()
+                            .bottom_0()
+                            .left_0()
+                            .h(gpui::px(3.))
+                            .w(gpui::relative(self.focus_progress as f32 / 100.0))
+                            .bg(rgb(0x5cc8ff)),
+                    )
+                    .child(format!(
+                        "Processing depth profile… {}%",
+                        self.focus_progress
+                    ))
+            } else {
+                div()
+            })
             .child(
                 div()
                     .flex()
