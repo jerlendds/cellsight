@@ -27,7 +27,8 @@ impl Render for CellSight {
 
         let toolbar = toolbar::render(self, cx);
         let sidebar = sidebar::render(self, cx);
-        let viewport = viewport::render(self, cx);
+        let viewport_height = (f32::from(window.viewport_size().height) - 48.0).max(1.0);
+        let viewport = viewport::render(self, viewport_height, cx);
         div()
             .id("app-root")
             .size_full()
@@ -37,6 +38,16 @@ impl Render for CellSight {
             .text_color(rgb(TEXT))
             .font_family("Neometric")
             .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
+                if event.keystroke.key == "escape" {
+                    this.selected_annotation = None;
+                    this.editing_annotation = None;
+                    this.object_color_picker_open = false;
+                    this.annotation_rotation = None;
+                    this.annotation_translation = None;
+                    cx.stop_propagation();
+                    cx.notify();
+                    return;
+                }
                 let command =
                     event.keystroke.modifiers.control || event.keystroke.modifiers.platform;
                 if !command {

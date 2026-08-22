@@ -2,14 +2,29 @@ use crate::app::{Annotation, CellSight, Tool};
 use cellsight_color_picker::{color_picker, parse_color};
 use cellsight_theme::{ACCENT, BORDER, CANVAS, MUTED};
 use gpui::{
-    Animation, AnimationExt, Context, IntoElement, KeyDownEvent, MouseButton, MouseDownEvent,
-    MouseMoveEvent, PathBuilder, Pixels, Point, ScrollDelta, ScrollWheelEvent, SharedString,
-    canvas, div, ease_out_quint, img, point, prelude::*, px, rgb,
+    Animation, AnimationExt, Context, DragMoveEvent, IntoElement, KeyDownEvent, MouseButton,
+    MouseDownEvent, MouseMoveEvent, PathBuilder, Pixels, Point, Render, ScrollDelta,
+    ScrollWheelEvent, SharedString, Transformation, Window, canvas, deferred, div, ease_out_quint,
+    img, point, prelude::*, px, radians, rgb, svg,
 };
 use std::time::Duration;
 
 const MIN_ANNOTATION_SIZE: f32 = 1.0;
 const MAX_ANNOTATION_SIZE: f32 = 24.0;
+
+#[derive(Clone)]
+struct RotationDrag;
+
+#[derive(Clone)]
+struct TranslationDrag;
+
+struct RotationDragPreview;
+
+impl Render for RotationDragPreview {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div()
+    }
+}
 
 fn line_angle_degrees(start: Point<Pixels>, end: Point<Pixels>) -> u16 {
     let dx = f32::from(end.x) - f32::from(start.x);
@@ -52,6 +67,7 @@ fn snap_to_angle_increment(
 fn transform_annotation(annotation: &mut Annotation, scale: f32, rotation: f32) {
     if annotation.tool == Tool::Text {
         annotation.size = (annotation.size * scale).clamp(MIN_ANNOTATION_SIZE, MAX_ANNOTATION_SIZE);
+        annotation.rotation += rotation;
         return;
     }
     if annotation.points.is_empty() {
@@ -74,17 +90,80 @@ fn transform_annotation(annotation: &mut Annotation, scale: f32, rotation: f32) 
     }
 }
 
-pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoElement + use<> {
-    let annotations = app.annotations.clone();
-    let size_preview = app.annotation_size_preview.map(|position| {
-        (
-            position,
-            app.tool,
-            app.annotation_size,
-            app.annotation_color,
-            app.annotation_size_preview_generation,
-        )
+fn annotation_center(annotation: &Annotation) -> Point<Pixels> {
+    let (x, y) = annotation.points.iter().fold((0.0, 0.0), |(x, y), point| {
+        (x + f32::from(point.x), y + f32::from(point.y))
     });
+    let count = annotation.points.len().max(1) as f32;
+    point(px(x / count), px(y / count))
+}
+
+fn pointer_angle(center: Point<Pixels>, pointer: Point<Pixels>) -> f32 {
+    (f32::from(pointer.y) - f32::from(center.y)).atan2(f32::from(pointer.x) - f32::from(center.x))
+}
+
+fn escape_svg_text(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn update_annotation_rotation(app: &mut CellSight, pointer: Point<Pixels>, snap: bool) -> bool {
+    let Some(rotation) = &app.annotation_rotation else {
+        return false;
+    };
+    let mut delta = pointer_angle(rotation.center, pointer) - rotation.pointer_angle;
+    if snap {
+        let increment = std::f32::consts::PI / 12.0;
+        delta = (delta / increment).round() * increment;
+    }
+    let index = rotation.index;
+    let mut annotation = rotation.original.clone();
+    transform_annotation(&mut annotation, 1.0, delta);
+    if let Some(target) = app.annotations.get_mut(index) {
+        *target = annotation;
+    }
+    true
+}
+
+fn update_annotation_translation(app: &mut CellSight, pointer: Point<Pixels>) -> bool {
+    let Some(translation) = &app.annotation_translation else {
+        return false;
+    };
+    let dx = f32::from(pointer.x) - f32::from(translation.pointer.x);
+    let dy = f32::from(pointer.y) - f32::from(translation.pointer.y);
+    let index = translation.index;
+    let mut annotation = translation.original.clone();
+    for point in &mut annotation.points {
+        point.x += px(dx);
+        point.y += px(dy);
+    }
+    if let Some(target) = app.annotations.get_mut(index) {
+        *target = annotation;
+    }
+    true
+}
+
+pub(crate) fn render(
+    app: &CellSight,
+    viewport_height: f32,
+    cx: &mut Context<CellSight>,
+) -> impl IntoElement + use<> {
+    let annotations = app.annotations.clone();
+    let size_preview = app
+        .annotation_size_preview
+        .filter(|_| app.tool != Tool::Select)
+        .map(|position| {
+            (
+                position,
+                app.tool,
+                app.annotation_size,
+                app.annotation_color,
+                app.annotation_size_preview_generation,
+            )
+        });
     let fps = format!("{} fps", app.fps_values[app.fps]);
     let mut viewport = div()
         .id("annotation-layer")
@@ -128,7 +207,18 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 if !this.annotations_open {
                     return;
                 }
+                if this.tool == Tool::Select {
+                    this.selected_annotation = None;
+                    this.editing_annotation = None;
+                    this.object_color_picker_open = false;
+                    cx.notify();
+                    return;
+                }
                 this.undone_annotations.clear();
+                this.selected_annotation = None;
+                this.object_color_picker_open = false;
+                this.annotation_rotation = None;
+                this.annotation_translation = None;
                 if this.tool == Tool::Text {
                     let index = this.annotations.len();
                     this.annotations.push(Annotation {
@@ -137,6 +227,7 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                         points: vec![e.position],
                         text: "".into(),
                         size: this.annotation_size,
+                        rotation: 0.0,
                     });
                     this.editing_annotation = Some(index);
                     this.selected_annotation = Some(index);
@@ -148,18 +239,26 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                     return;
                 }
                 this.drawing = true;
-                this.selected_annotation = Some(this.annotations.len());
                 this.annotations.push(Annotation {
                     tool: this.tool,
                     color: this.annotation_color,
                     points: vec![e.position, e.position],
                     text: "".into(),
                     size: this.annotation_size,
+                    rotation: 0.0,
                 });
                 cx.notify();
             }),
         )
         .on_mouse_move(cx.listener(|this, e: &MouseMoveEvent, window, cx| {
+            if update_annotation_rotation(this, e.position, e.modifiers.shift) {
+                cx.notify();
+                return;
+            }
+            if update_annotation_translation(this, e.position) {
+                cx.notify();
+                return;
+            }
             if this.dragging_comparison {
                 let size = window.viewport_size();
                 let width: f32 = size.width.into();
@@ -218,7 +317,13 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
         .on_mouse_up(
             MouseButton::Left,
             cx.listener(|this, _, _, cx| {
+                let completed_annotation = this.drawing;
                 this.drawing = false;
+                this.annotation_rotation = None;
+                this.annotation_translation = None;
+                if completed_annotation {
+                    this.selected_annotation = this.annotations.len().checked_sub(1);
+                }
                 this.dragging_comparison = false;
                 if this.focus_region_anchor.take().is_some() {
                     this.selecting_focus_region = false;
@@ -345,6 +450,7 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                     let mut path = PathBuilder::stroke(px(annotation.size));
                     path.move_to(annotation.points[0]);
                     match annotation.tool {
+                        Tool::Select => continue,
                         Tool::Text => continue,
                         Tool::Pencil => {
                             for point in annotation.points.iter().skip(1) {
@@ -471,32 +577,65 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
         };
         let text_focus = app.annotation_text_focus.clone();
         let focus_on_click = text_focus.clone();
+        let font_size = (annotation.size * 7.0).clamp(10.0, 72.0);
+        let text_width = (annotation.text.len().max(8) as f32 * annotation.size * 3.5).max(120.0);
+        let text_height =
+            (annotation.text.lines().count().max(1) as f32 * annotation.size * 9.0).max(34.0);
+        let mut text_element = div()
+            .id(("text-annotation", index))
+            .absolute()
+            .left(px((x - 310.0).max(0.0)))
+            .top(px((y - 48.0).max(0.0)))
+            .w(px(text_width))
+            .h(px(text_height))
+            .px_2()
+            .flex()
+            .items_center()
+            .text_size(px(font_size))
+            .text_color(rgb(annotation.color))
+            .cursor_text()
+            .when_some(text_focus, |element, focus| element.track_focus(&focus));
+        if editing {
+            text_element = text_element.child(display_text);
+        } else {
+            let lines = annotation
+                .text
+                .lines()
+                .enumerate()
+                .map(|(line, text)| {
+                    format!(
+                        "<text x=\"8\" y=\"{}\" fill=\"currentColor\" font-family=\"Neometric, sans-serif\" font-size=\"{font_size}\">{}</text>",
+                        font_size * (line as f32 + 1.0),
+                        escape_svg_text(text)
+                    )
+                })
+                .collect::<String>();
+            let markup = format!(
+                "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{text_width}\" height=\"{text_height}\" viewBox=\"0 0 {text_width} {text_height}\">{lines}</svg>"
+            );
+            text_element = text_element.child(
+                svg()
+                    .data(markup.as_bytes())
+                    .size_full()
+                    .text_color(rgb(annotation.color))
+                    .with_transformation(Transformation::rotate(radians(annotation.rotation))),
+            );
+        }
         viewport = viewport.child(
-            div()
-                .id(("text-annotation", index))
-                .absolute()
-                .left(px((x - 310.0).max(0.0)))
-                .top(px((y - 48.0).max(0.0)))
-                .min_w(px(120.))
-                .max_w(px(320.))
-                .min_h(px(34.))
-                .px_2()
-                .flex()
-                .items_center()
-                .text_size(px((annotation.size * 7.0).clamp(10.0, 72.0)))
-                .text_color(rgb(annotation.color))
-                .cursor_text()
-                .when_some(text_focus, |element, focus| element.track_focus(&focus))
-                .child(display_text)
+            text_element
                 .on_mouse_down(
                     MouseButton::Left,
                     cx.listener(move |this, _, window, cx| {
                         cx.stop_propagation();
-                        this.editing_annotation = Some(index);
                         this.selected_annotation = Some(index);
                         this.object_color_picker_open = false;
-                        if let Some(focus) = &focus_on_click {
-                            focus.focus(window, cx);
+                        if this.tool == Tool::Text {
+                            this.editing_annotation = Some(index);
+                            if let Some(focus) = &focus_on_click {
+                                focus.focus(window, cx);
+                            }
+                        } else {
+                            this.editing_annotation = None;
                         }
                         cx.notify();
                     }),
@@ -538,6 +677,56 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
         );
     }
 
+    if app.tool == Tool::Select {
+        for (index, annotation) in app.annotations.iter().enumerate() {
+            if annotation.points.is_empty() {
+                continue;
+            }
+            let mut left = f32::INFINITY;
+            let mut top = f32::INFINITY;
+            let mut right = f32::NEG_INFINITY;
+            let mut bottom = f32::NEG_INFINITY;
+            for point in &annotation.points {
+                let x = f32::from(point.x);
+                let y = f32::from(point.y);
+                left = left.min(x);
+                top = top.min(y);
+                right = right.max(x);
+                bottom = bottom.max(y);
+            }
+            if annotation.tool == Tool::Text {
+                right = left + (annotation.text.len().max(8) as f32 * annotation.size * 3.5);
+                bottom =
+                    top + (annotation.text.lines().count().max(1) as f32 * annotation.size * 9.0);
+            }
+            let padding = 8.0;
+            let local_left = (left - 310.0 - padding).max(0.0);
+            let local_top = (top - 48.0 - padding).max(0.0);
+            let width = (right - left + padding * 2.0).max(28.0);
+            let height = (bottom - top + padding * 2.0).max(28.0);
+            viewport = viewport.child(
+                div()
+                    .id(("annotation-select", index))
+                    .absolute()
+                    .left(px(local_left))
+                    .top(px(local_top))
+                    .w(px(width))
+                    .h(px(height))
+                    .cursor_pointer()
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(move |this, _, _, cx| {
+                            cx.stop_propagation();
+                            this.selected_annotation = Some(index);
+                            this.editing_annotation = None;
+                            this.object_color_picker_open = false;
+                            cx.notify();
+                        }),
+                    ),
+            );
+        }
+    }
+
     if let Some(index) = app.selected_annotation
         && let Some(annotation) = app.annotations.get(index)
         && !annotation.points.is_empty()
@@ -566,144 +755,212 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
         let picker_focus = app.color_input_focus.clone();
         let selection_text_focus = app.annotation_text_focus.clone();
         let selected_tool = annotation.tool;
+        let controls_below = local_top + height / 2.0 < viewport_height / 2.0;
         if let Some(picker_focus) = picker_focus {
-            viewport = viewport.child(
-                div()
-                    .absolute()
-                    .left(px(local_left))
-                    .top(px(local_top))
-                    .w(px(width))
-                    .h(px(height))
-                    .border_1()
-                    .border_color(rgb(ACCENT))
-                    .on_mouse_down(
-                        MouseButton::Left,
-                        cx.listener(move |this, _, window, cx| {
-                            cx.stop_propagation();
-                            this.selected_annotation = Some(index);
-                            if selected_tool == Tool::Text {
-                                this.editing_annotation = Some(index);
-                                if let Some(focus) = &selection_text_focus {
-                                    focus.focus(window, cx);
-                                }
+            let selection = div()
+                .absolute()
+                .left(px(local_left))
+                .top(px(local_top))
+                .w(px(width))
+                .h(px(height))
+                .border_1()
+                .border_color(rgb(ACCENT))
+                .on_mouse_down(
+                    MouseButton::Left,
+                    cx.listener(move |this, _, window, cx| {
+                        cx.stop_propagation();
+                        this.selected_annotation = Some(index);
+                        if selected_tool == Tool::Text {
+                            this.editing_annotation = Some(index);
+                            if let Some(focus) = &selection_text_focus {
+                                focus.focus(window, cx);
                             }
-                            cx.notify();
-                        }),
-                    )
-                    .child(
-                        div()
-                            .absolute()
-                            .left(px(-3.))
-                            .top(px(-3.))
-                            .size(px(6.))
-                            .bg(rgb(ACCENT)),
-                    )
-                    .child(
-                        div()
-                            .absolute()
-                            .right(px(-3.))
-                            .bottom(px(-3.))
-                            .size(px(6.))
-                            .bg(rgb(ACCENT)),
-                    )
-                    .child(
-                        div()
-                            .absolute()
-                            .right_0()
-                            .top(px(-42.))
-                            .flex()
-                            .items_center()
-                            .gap_2()
-                            .child(
-                                div()
-                                    .id(("annotation-scale-down", index))
-                                    .size(px(30.))
-                                    .rounded_md()
-                                    .border_1()
-                                    .border_color(rgb(BORDER))
-                                    .bg(rgb(0x11151a))
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .cursor_pointer()
-                                    .child("−")
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        if let Some(annotation) = this.annotations.get_mut(index) {
-                                            transform_annotation(annotation, 0.9, 0.0);
-                                        }
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(
-                                div()
-                                    .id(("annotation-scale-up", index))
-                                    .size(px(30.))
-                                    .rounded_md()
-                                    .border_1()
-                                    .border_color(rgb(BORDER))
-                                    .bg(rgb(0x11151a))
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .cursor_pointer()
-                                    .child("+")
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        if let Some(annotation) = this.annotations.get_mut(index) {
-                                            transform_annotation(annotation, 1.1, 0.0);
-                                        }
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(
-                                div()
-                                    .id(("annotation-rotate", index))
-                                    .size(px(30.))
-                                    .rounded_md()
-                                    .border_1()
-                                    .border_color(rgb(BORDER))
-                                    .bg(rgb(0x11151a))
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .cursor_pointer()
-                                    .child("↻")
-                                    .on_click(cx.listener(move |this, _, _, cx| {
-                                        if let Some(annotation) = this.annotations.get_mut(index) {
-                                            transform_annotation(
-                                                annotation,
-                                                1.0,
-                                                std::f32::consts::PI / 12.0,
-                                            );
-                                        }
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(color_picker(
-                                "selected-annotation-color",
-                                app.object_color_picker_open,
-                                annotation.color,
-                                app.color_input.clone(),
-                                picker_focus,
-                                cx,
-                                |this| {
-                                    this.object_color_picker_open = !this.object_color_picker_open
-                                },
-                                move |this, color| {
+                        }
+                        cx.notify();
+                    }),
+                )
+                .child(
+                    div()
+                        .id(("annotation-move", index))
+                        .absolute()
+                        .inset_0()
+                        .cursor_move()
+                        .on_mouse_down(
+                            MouseButton::Left,
+                            cx.listener(move |this, event: &MouseDownEvent, _, cx| {
+                                cx.stop_propagation();
+                                if let Some(annotation) = this.annotations.get(index).cloned() {
+                                    this.annotation_translation =
+                                        Some(crate::app::AnnotationTranslation {
+                                            index,
+                                            pointer: event.position,
+                                            original: annotation,
+                                        });
+                                    this.annotation_rotation = None;
+                                }
+                                cx.notify();
+                            }),
+                        )
+                        .on_drag(TranslationDrag, |_, _, _, cx| {
+                            cx.new(|_| RotationDragPreview)
+                        })
+                        .on_drag_move::<TranslationDrag>(cx.listener(
+                            |this, event: &DragMoveEvent<TranslationDrag>, _, cx| {
+                                if update_annotation_translation(this, event.event.position) {
+                                    cx.notify();
+                                }
+                            },
+                        ))
+                        .on_mouse_up(
+                            MouseButton::Left,
+                            cx.listener(|this, _, _, cx| {
+                                this.annotation_translation = None;
+                                cx.notify();
+                            }),
+                        ),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .left(px(-3.))
+                        .top(px(-3.))
+                        .size(px(6.))
+                        .bg(rgb(ACCENT)),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .right(px(-3.))
+                        .bottom(px(-3.))
+                        .size(px(6.))
+                        .bg(rgb(ACCENT)),
+                )
+                .child(
+                    div()
+                        .absolute()
+                        .right_0()
+                        .top(px(if controls_below { height + 8.0 } else { -42.0 }))
+                        .flex()
+                        .items_center()
+                        .gap_2()
+                        .on_mouse_down(MouseButton::Left, |_, _, cx| {
+                            cx.stop_propagation();
+                        })
+                        .child(
+                            div()
+                                .id(("annotation-scale-down", index))
+                                .size(px(30.))
+                                .rounded_md()
+                                .border_1()
+                                .border_color(rgb(BORDER))
+                                .bg(rgb(0x11151a))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .cursor_pointer()
+                                .child("−")
+                                .on_click(cx.listener(move |this, _, _, cx| {
                                     if let Some(annotation) = this.annotations.get_mut(index) {
-                                        annotation.color = color;
+                                        transform_annotation(annotation, 0.9, 0.0);
                                     }
-                                },
-                                move |this, event| {
-                                    if event.keystroke.key == "enter"
-                                        && let Some(color) = parse_color(&this.color_input)
-                                        && let Some(annotation) = this.annotations.get_mut(index)
-                                    {
-                                        annotation.color = color;
+                                    cx.notify();
+                                })),
+                        )
+                        .child(
+                            div()
+                                .id(("annotation-scale-up", index))
+                                .size(px(30.))
+                                .rounded_md()
+                                .border_1()
+                                .border_color(rgb(BORDER))
+                                .bg(rgb(0x11151a))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .cursor_pointer()
+                                .child("+")
+                                .on_click(cx.listener(move |this, _, _, cx| {
+                                    if let Some(annotation) = this.annotations.get_mut(index) {
+                                        transform_annotation(annotation, 1.1, 0.0);
                                     }
-                                },
-                            )),
-                    ),
-            );
+                                    cx.notify();
+                                })),
+                        )
+                        .child(
+                            div()
+                                .id(("annotation-rotate", index))
+                                .size(px(30.))
+                                .rounded_md()
+                                .border_1()
+                                .border_color(rgb(BORDER))
+                                .bg(rgb(0x11151a))
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .cursor_pointer()
+                                .child("↻")
+                                .on_mouse_down(
+                                    MouseButton::Left,
+                                    cx.listener(move |this, event: &MouseDownEvent, _, cx| {
+                                        cx.stop_propagation();
+                                        if let Some(annotation) =
+                                            this.annotations.get(index).cloned()
+                                        {
+                                            this.editing_annotation = None;
+                                            let center = annotation_center(&annotation);
+                                            this.annotation_rotation =
+                                                Some(crate::app::AnnotationRotation {
+                                                    index,
+                                                    center,
+                                                    pointer_angle: pointer_angle(
+                                                        center,
+                                                        event.position,
+                                                    ),
+                                                    original: annotation,
+                                                });
+                                        }
+                                        cx.notify();
+                                    }),
+                                )
+                                .on_drag(RotationDrag, |_, _, _, cx| {
+                                    cx.new(|_| RotationDragPreview)
+                                })
+                                .on_drag_move::<RotationDrag>(cx.listener(
+                                    |this, event: &DragMoveEvent<RotationDrag>, _, cx| {
+                                        if update_annotation_rotation(
+                                            this,
+                                            event.event.position,
+                                            event.event.modifiers.shift,
+                                        ) {
+                                            cx.notify();
+                                        }
+                                    },
+                                )),
+                        )
+                        .child(color_picker(
+                            "selected-annotation-color",
+                            app.object_color_picker_open,
+                            annotation.color,
+                            app.color_input.clone(),
+                            picker_focus,
+                            cx,
+                            |this| this.object_color_picker_open = !this.object_color_picker_open,
+                            move |this, color| {
+                                if let Some(annotation) = this.annotations.get_mut(index) {
+                                    annotation.color = color;
+                                }
+                            },
+                            move |this, event| {
+                                if event.keystroke.key == "enter"
+                                    && let Some(color) = parse_color(&this.color_input)
+                                    && let Some(annotation) = this.annotations.get_mut(index)
+                                {
+                                    annotation.color = color;
+                                }
+                            },
+                        )),
+                );
+            viewport = viewport.child(deferred(selection).with_priority(3));
         }
     }
 
@@ -845,5 +1102,19 @@ mod tests {
             std::f32::consts::PI / 180.0,
         );
         assert_eq!(line_angle_degrees(origin, endpoint), 22);
+    }
+
+    #[test]
+    fn text_transform_preserves_rotation() {
+        let mut annotation = Annotation {
+            tool: Tool::Text,
+            color: 0xffffff,
+            points: vec![point(px(0.0), px(0.0))],
+            text: "label".into(),
+            size: 2.0,
+            rotation: 0.0,
+        };
+        transform_annotation(&mut annotation, 1.0, std::f32::consts::FRAC_PI_2);
+        assert_eq!(annotation.rotation, std::f32::consts::FRAC_PI_2);
     }
 }

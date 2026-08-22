@@ -8,6 +8,7 @@ use std::{
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Tool {
+    Select,
     Line,
     Angle,
     Arrow,
@@ -22,6 +23,20 @@ pub(crate) struct Annotation {
     pub(crate) points: Vec<gpui::Point<Pixels>>,
     pub(crate) text: SharedString,
     pub(crate) size: f32,
+    pub(crate) rotation: f32,
+}
+
+pub(crate) struct AnnotationRotation {
+    pub(crate) index: usize,
+    pub(crate) center: gpui::Point<Pixels>,
+    pub(crate) pointer_angle: f32,
+    pub(crate) original: Annotation,
+}
+
+pub(crate) struct AnnotationTranslation {
+    pub(crate) index: usize,
+    pub(crate) pointer: gpui::Point<Pixels>,
+    pub(crate) original: Annotation,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -93,6 +108,8 @@ pub(crate) struct CellSight {
     pub(crate) editing_annotation: Option<usize>,
     pub(crate) selected_annotation: Option<usize>,
     pub(crate) object_color_picker_open: bool,
+    pub(crate) annotation_rotation: Option<AnnotationRotation>,
+    pub(crate) annotation_translation: Option<AnnotationTranslation>,
     pub(crate) tool: Tool,
     pub(crate) drawing: bool,
     pub(crate) annotations: Vec<Annotation>,
@@ -152,16 +169,18 @@ impl CellSight {
             selecting_focus_region: false,
             annotations_open: false,
             color_picker_open: false,
-            annotation_color: 0x00ffff,
+            annotation_color: 0xff0000,
             annotation_size: 2.0,
             annotation_size_preview: None,
             annotation_size_preview_generation: 0,
-            color_input: "#00FFFF".into(),
+            color_input: "#FF0000".into(),
             color_input_focus: None,
             annotation_text_focus: None,
             editing_annotation: None,
             selected_annotation: None,
             object_color_picker_open: false,
+            annotation_rotation: None,
+            annotation_translation: None,
             tool: Tool::Pencil,
             drawing: false,
             annotations: Vec::new(),
@@ -180,5 +199,7 @@ mod tests {
         assert_eq!(app.fps_values[app.fps], 30);
         assert!(!app.streaming);
         assert!(app.camera_open && app.capture_open);
+        assert_eq!(app.annotation_color, 0xff0000);
+        assert_eq!(&*app.color_input, "#FF0000");
     }
 }

@@ -1,4 +1,4 @@
-use cellsight_theme::{ACCENT, ACTIVE_BTN, BORDER_BTN, CANVAS, SURFACE_BTN, TEXT};
+use cellsight_theme::{ACCENT, ACTIVE_BTN, BORDER_BTN, SURFACE_BTN, TEXT};
 use gpui::{
     Animation, AnimationExt, Context, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
     SharedString, deferred, div, ease_out_quint, prelude::*, px, rgb, svg,
@@ -96,12 +96,20 @@ pub fn color_picker<T: 'static>(
         .rounded_md()
         .border_1()
         .border_color(rgb(BORDER_BTN))
-        .bg(rgb(CANVAS))
+        .bg(rgb(SURFACE_BTN))
         .text_sm()
         .text_color(rgb(TEXT))
         .cursor_text()
-        .truncate()
-        .child(input_display)
+        .child(div().min_w_0().flex_1().truncate().child(input_display))
+        .child(
+            div()
+                .size(px(22.0))
+                .flex_none()
+                .rounded_sm()
+                .border_1()
+                .border_color(rgb(BORDER_BTN))
+                .bg(rgb(selected)),
+        )
         .on_mouse_down(MouseButton::Left, move |_, window, cx| {
             focus_on_click.focus(window, cx);
         })
@@ -112,8 +120,13 @@ pub fn color_picker<T: 'static>(
 
     let mut colors = div()
         .id((id, 102usize))
+        .bg(rgb(SURFACE_BTN))
+        .border_l_1()
+        .border_r_1()
+        .border_b_1()
+        .border_color(rgb(ACTIVE_BTN))
         .absolute()
-        .top(px(42.))
+        .top(px(40.))
         .right_0()
         .w(px(34.))
         .flex()
@@ -131,7 +144,6 @@ pub fn color_picker<T: 'static>(
                 .flex()
                 .items_center()
                 .justify_center()
-                .rounded_md()
                 .cursor_pointer()
                 .border_2()
                 .border_color(if color == selected {
@@ -174,7 +186,11 @@ pub fn color_picker<T: 'static>(
         .right_0()
         .w(px(190.))
         .overflow_hidden()
+        .on_mouse_down(MouseButton::Left, |_, _, cx| {
+            cx.stop_propagation();
+        })
         .child(panel)
+        .occlude()
         .with_animation(
             animation_id,
             Animation::new(Duration::from_millis(180)).with_easing(ease_out_quint()),
@@ -184,9 +200,15 @@ pub fn color_picker<T: 'static>(
             },
         );
 
-    div().relative().child(button).when(is_open, |element| {
-        element.child(deferred(reveal).with_priority(2))
-    })
+    div()
+        .relative()
+        .on_mouse_down(MouseButton::Left, |_, _, cx| {
+            cx.stop_propagation();
+        })
+        .child(button)
+        .when(is_open, |element| {
+            element.child(deferred(reveal).with_priority(2))
+        })
 }
 
 #[cfg(test)]

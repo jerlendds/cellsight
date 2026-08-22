@@ -67,10 +67,23 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                         .overflow_hidden()
                         .child(
                             div()
-                                .w(px(202.))
+                                .w(px(244.))
                                 .flex_none()
                                 .flex()
                                 .gap_2()
+                                .child(icon_only_button(
+                                    "selection-tool",
+                                    svg()
+                                        .data(include_bytes!("../assets/hand.svg"))
+                                        .size(px(18.))
+                                        .text_color(rgb(TEXT)),
+                                    app.tool == Tool::Select,
+                                    cx,
+                                    |s| {
+                                        s.tool = Tool::Select;
+                                        s.editing_annotation = None;
+                                    },
+                                ))
                                 .child(icon_only_button(
                                     "line-tool",
                                     svg()
@@ -132,7 +145,7 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                 } else {
                                     1.0 - progress
                                 };
-                                element.w(px(202. * reveal)).opacity(reveal)
+                                element.w(px(244. * reveal)).opacity(reveal)
                             },
                         ),
                 )

@@ -26,6 +26,6 @@ This is a work in progress... come back later :)
 - [ ] 
 - todo... expand.... -->
 
-## Preview Screenshots
+## Preview
 
-<img width="1912" height="1052" alt="Image" src="https://github.com/user-attachments/assets/8d854193-1ca7-4f3b-9d64-77361e82fdeb" />
+![demo.mp4](https://github.com/user-attachments/assets/c439c01d-6356-4600-bb73-c1935e4c7321)
