@@ -809,6 +809,7 @@ name = "cellsight"
 version = "0.1.0"
 dependencies = [
  "cellsight-button",
+ "cellsight-color-picker",
  "cellsight-focus-profile",
  "cellsight-icon-button",
  "cellsight-icon-only-button",
@@ -831,6 +832,13 @@ dependencies = [
 
 [[package]]
 name = "cellsight-button"
+version = "0.1.0"
+dependencies = [
+ "gpui",
+]
+
+[[package]]
+name = "cellsight-color-picker"
 version = "0.1.0"
 dependencies = [
  "gpui",

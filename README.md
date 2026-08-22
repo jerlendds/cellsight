@@ -10,9 +10,20 @@ This is a work in progress... come back later :)
 <!-- 
 ## Features
 
-- USB camera support
-- Gain & Exposure
-- Focus sweep
+- [x] USB camera support
+- [x] Gain & Exposure
+- [x] Focus sweep
+- [ ] Gamma adjustment/non-linear color spaces
+- [ ] Artificial color disambiguation
+- [ ] Automatic color tuning 
+- [ ] Scale up
+- [ ] Motion amplification
+- [ ] 
+- [ ] 
+- [ ] 
+- [ ] 
+- [ ] 
+- [ ] 
 - todo... expand.... -->
 
 ## Preview Screenshots

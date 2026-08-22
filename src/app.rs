@@ -1,5 +1,5 @@
 use cellsight_focus_profile::{FocusResolution, FocusResult, FocusSweep, FocusView};
-use gpui::{Pixels, RenderImage, SharedString};
+use gpui::{FocusHandle, Pixels, RenderImage, SharedString};
 use std::{
     path::PathBuf,
     process::Child,
@@ -8,9 +8,16 @@ use std::{
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Tool {
-    Pointer,
-    Pen,
-    Ruler,
+    Line,
+    Arrow,
+    Pencil,
+}
+
+#[derive(Clone)]
+pub(crate) struct Annotation {
+    pub(crate) tool: Tool,
+    pub(crate) color: u32,
+    pub(crate) points: Vec<gpui::Point<Pixels>>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -70,9 +77,14 @@ pub(crate) struct CellSight {
     pub(crate) focus_region: Option<[f32; 4]>,
     pub(crate) focus_region_anchor: Option<[f32; 2]>,
     pub(crate) selecting_focus_region: bool,
+    pub(crate) annotations_open: bool,
+    pub(crate) color_picker_open: bool,
+    pub(crate) annotation_color: u32,
+    pub(crate) color_input: SharedString,
+    pub(crate) color_input_focus: Option<FocusHandle>,
     pub(crate) tool: Tool,
     pub(crate) drawing: bool,
-    pub(crate) strokes: Vec<Vec<gpui::Point<Pixels>>>,
+    pub(crate) annotations: Vec<Annotation>,
 }
 
 impl CellSight {
@@ -126,9 +138,14 @@ impl CellSight {
             focus_region: None,
             focus_region_anchor: None,
             selecting_focus_region: false,
-            tool: Tool::Pen,
+            annotations_open: false,
+            color_picker_open: false,
+            annotation_color: 0x00ffff,
+            color_input: "#00FFFF".into(),
+            color_input_focus: None,
+            tool: Tool::Pencil,
             drawing: false,
-            strokes: Vec::new(),
+            annotations: Vec::new(),
         }
     }
 }

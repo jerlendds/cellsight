@@ -1,4 +1,8 @@
-use gpui::{Context, IntoElement, SharedString, deferred, div, prelude::*, px, rgb};
+use gpui::{
+    Animation, AnimationExt, Context, IntoElement, SharedString, Transformation, deferred, div,
+    ease_out_quint, prelude::*, px, radians, rgb, svg,
+};
+use std::{f32::consts::PI, time::Duration};
 
 const ACCENT: u32 = 0x37b5e5;
 const BORDER: u32 = 0x303942;
@@ -16,9 +20,16 @@ pub fn selector<T: 'static>(
     select: impl Fn(&mut T, usize) + Clone + 'static,
 ) -> impl IntoElement {
     let value = options[selected].clone();
+    let chevron_animation = format!(
+        "{id}-chevron-{}",
+        if is_open { "opening" } else { "closing" }
+    );
     let trigger = div()
         .id(id)
         .flex()
+        .min_w_0()
+        .w_full()
+        .gap_2()
         .items_center()
         .justify_between()
         .h(px(36.))
@@ -33,14 +44,28 @@ pub fn selector<T: 'static>(
             toggle(this);
             cx.notify();
         }))
-        .child(div().text_sm().child(value))
+        .child(div().min_w_0().flex_1().text_sm().truncate().child(value))
         .child(
-            div()
+            svg()
+                .data(include_bytes!("../../../src/assets/chevron-down.svg"))
+                .size(px(16.))
+                .flex_none()
                 .text_color(rgb(MUTED))
-                .child(if is_open { "⌃" } else { "⌄" }),
+                .with_animation(
+                    chevron_animation,
+                    Animation::new(Duration::from_millis(180)).with_easing(ease_out_quint()),
+                    move |icon, progress| {
+                        let rotation = if is_open {
+                            progress * PI
+                        } else {
+                            (1.0 - progress) * PI
+                        };
+                        icon.with_transformation(Transformation::rotate(radians(rotation)))
+                    },
+                ),
         );
 
-    let mut field = div().relative().child(trigger);
+    let mut field = div().relative().min_w_0().w_full().child(trigger);
     if is_open {
         let mut menu = div()
             .absolute()
@@ -83,6 +108,8 @@ pub fn selector<T: 'static>(
     }
 
     div()
+        .min_w_0()
+        .w_full()
         .flex()
         .flex_col()
         .gap_1()

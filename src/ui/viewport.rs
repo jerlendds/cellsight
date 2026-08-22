@@ -1,12 +1,32 @@
 use super::theme::{ACCENT, BORDER, MUTED};
-use crate::app::{CellSight, Tool};
+use crate::app::{Annotation, CellSight, Tool};
 use gpui::{
-    Context, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent, PathBuilder, canvas, div,
-    img, prelude::*, px, rgb,
+    Context, IntoElement, MouseButton, MouseDownEvent, MouseMoveEvent, PathBuilder, Pixels, Point,
+    canvas, div, img, point, prelude::*, px, rgb,
 };
 
+fn snap_to_angle(start: Point<Pixels>, target: Point<Pixels>) -> Point<Pixels> {
+    let start_x: f32 = start.x.into();
+    let start_y: f32 = start.y.into();
+    let target_x: f32 = target.x.into();
+    let target_y: f32 = target.y.into();
+    let dx = target_x - start_x;
+    let dy = target_y - start_y;
+    let distance = (dx * dx + dy * dy).sqrt();
+    if distance <= f32::EPSILON {
+        return target;
+    }
+
+    let increment = std::f32::consts::PI / 12.0;
+    let angle = (dy.atan2(dx) / increment).round() * increment;
+    point(
+        px(start_x + distance * angle.cos()),
+        px(start_y + distance * angle.sin()),
+    )
+}
+
 pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoElement + use<> {
-    let strokes = app.strokes.clone();
+    let annotations = app.annotations.clone();
     let fps = format!("{} fps", app.fps_values[app.fps]);
     let mut viewport = div()
         .id("annotation-layer")
@@ -47,11 +67,15 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                         return;
                     }
                 }
-                if this.tool == Tool::Pointer {
+                if !this.annotations_open {
                     return;
                 }
                 this.drawing = true;
-                this.strokes.push(vec![e.position]);
+                this.annotations.push(Annotation {
+                    tool: this.tool,
+                    color: this.annotation_color,
+                    points: vec![e.position, e.position],
+                });
                 cx.notify();
             }),
         )
@@ -84,8 +108,19 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 return;
             }
             if this.drawing {
-                if let Some(line) = this.strokes.last_mut() {
-                    line.push(e.position);
+                if let Some(annotation) = this.annotations.last_mut() {
+                    if annotation.tool == Tool::Pencil {
+                        annotation.points.push(e.position);
+                    } else {
+                        let endpoint = if e.modifiers.shift {
+                            snap_to_angle(annotation.points[0], e.position)
+                        } else {
+                            e.position
+                        };
+                        if let Some(current_endpoint) = annotation.points.last_mut() {
+                            *current_endpoint = endpoint;
+                        }
+                    }
                 }
                 cx.notify();
             }
@@ -193,17 +228,47 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
             canvas(
                 move |_, _, _| {},
                 move |_, _, window, _| {
-                    for line in &strokes {
-                        if line.len() < 2 {
+                    for annotation in &annotations {
+                        if annotation.points.len() < 2 {
                             continue;
                         }
                         let mut path = PathBuilder::stroke(px(2.));
-                        path.move_to(line[0]);
-                        for point in line.iter().skip(1) {
-                            path.line_to(*point);
+                        path.move_to(annotation.points[0]);
+                        match annotation.tool {
+                            Tool::Pencil => {
+                                for point in annotation.points.iter().skip(1) {
+                                    path.line_to(*point);
+                                }
+                            }
+                            Tool::Line => path.line_to(annotation.points[1]),
+                            Tool::Arrow => {
+                                let start = annotation.points[0];
+                                let end = annotation.points[1];
+                                path.line_to(end);
+
+                                let start_x: f32 = start.x.into();
+                                let start_y: f32 = start.y.into();
+                                let end_x: f32 = end.x.into();
+                                let end_y: f32 = end.y.into();
+                                let dx = end_x - start_x;
+                                let dy = end_y - start_y;
+                                let length = (dx * dx + dy * dy).sqrt();
+                                if length > 0.5 {
+                                    let head_length = 12.0_f32.min(length * 0.4);
+                                    let angle = dy.atan2(dx);
+                                    let spread = std::f32::consts::FRAC_PI_6;
+                                    for wing_angle in [angle + spread, angle - spread] {
+                                        path.move_to(end);
+                                        path.line_to(point(
+                                            px(end_x - head_length * wing_angle.cos()),
+                                            px(end_y - head_length * wing_angle.sin()),
+                                        ));
+                                    }
+                                }
+                            }
                         }
                         if let Ok(path) = path.build() {
-                            window.paint_path(path, rgb(ACCENT));
+                            window.paint_path(path, rgb(annotation.color));
                         }
                     }
                 },
@@ -259,8 +324,8 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 })
                 .child(format!(
                     "{} annotation{}",
-                    app.strokes.len(),
-                    if app.strokes.len() == 1 { "" } else { "s" }
+                    app.annotations.len(),
+                    if app.annotations.len() == 1 { "" } else { "s" }
                 )),
         )
 }

@@ -5,9 +5,18 @@ mod ui;
 use app::CellSight;
 use gpui::{App, AppContext, Bounds, WindowBounds, WindowOptions, px, size};
 use gpui_platform::application;
+use std::borrow::Cow;
 
 fn main() {
     application().run(|cx: &mut App| {
+        cx.text_system()
+            .add_fonts(vec![
+                Cow::Borrowed(&include_bytes!("fonts/Neometric-Regular.otf")[..]),
+                Cow::Borrowed(&include_bytes!("fonts/Neometric Medium (Regular).otf")[..]),
+                Cow::Borrowed(&include_bytes!("fonts/Neometric Extra Bold (Bold).otf")[..]),
+            ])
+            .expect("bundled Neometric fonts should load");
+
         let bounds = Bounds::centered(None, size(px(1280.), px(800.)), cx);
         cx.open_window(
             WindowOptions {

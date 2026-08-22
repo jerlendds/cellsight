@@ -6,7 +6,7 @@ const SURFACE: u32 = 0x171c22;
 
 pub fn icon_only_button<T: 'static>(
     id: &'static str,
-    icon: &'static str,
+    icon: impl IntoElement,
     selected: bool,
     cx: &mut Context<T>,
     action: impl Fn(&mut T) + 'static,

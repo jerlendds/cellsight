@@ -35,7 +35,7 @@ impl Render for CellSight {
             .flex_col()
             .bg(rgb(0x0d1116))
             .text_color(rgb(TEXT))
-            .font_family("Inter")
+            .font_family("Neometric")
             .child(toolbar)
             .child(if self.focus_processing {
                 div()

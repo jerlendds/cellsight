@@ -7,6 +7,7 @@ edition = "2024"
 exclude = ["zed"]
 members = [
     "crates/button",
+    "crates/color-picker",
     "crates/icon-button",
     "crates/icon-only-button",
     "crates/info-channel",
@@ -24,6 +25,7 @@ x11 = ["gpui/x11", "gpui_platform/x11"]
 
 [dependencies]
 cellsight-button = { path = "crates/button" }
+cellsight-color-picker = { path = "crates/color-picker" }
 cellsight-icon-button = { path = "crates/icon-button" }
 cellsight-icon-only-button = { path = "crates/icon-only-button" }
 cellsight-info-channel = { path = "crates/info-channel" }
