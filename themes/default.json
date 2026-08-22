@@ -1,0 +1,12 @@
+{
+  "panel": "#161f20",
+  "border": "#162018",
+  "text": "#f0f5f1",
+  "muted": "#909aa7",
+  "accent": "#3b6244",
+  "canvas": "#0e0f0e",
+  "accent_btn": "#1d2e25",
+  "border_btn": "#233b2d",
+  "surface_btn": "#181f1b",
+  "active_btn": "#233b2d"
+}

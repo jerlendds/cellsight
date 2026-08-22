@@ -1,8 +1,5 @@
+use cellsight_theme::{ACCENT_BTN, ACTIVE_BTN, BORDER_BTN, SURFACE_BTN};
 use gpui::{Context, IntoElement, div, prelude::*, px, rgb};
-
-const ACCENT: u32 = 0x37b5e5;
-const BORDER: u32 = 0x303942;
-const SURFACE: u32 = 0x171c22;
 
 pub fn icon_only_button<T: 'static>(
     id: &'static str,
@@ -20,14 +17,18 @@ pub fn icon_only_button<T: 'static>(
         .rounded_md()
         .cursor_pointer()
         .bg(if selected {
-            rgb(0x174b63)
+            rgb(ACTIVE_BTN)
         } else {
-            rgb(SURFACE)
+            rgb(SURFACE_BTN)
         })
         .border_1()
-        .border_color(if selected { rgb(ACCENT) } else { rgb(BORDER) })
+        .border_color(if selected {
+            rgb(ACCENT_BTN)
+        } else {
+            rgb(BORDER_BTN)
+        })
         .child(icon)
-        .hover(|s| s.border_color(rgb(ACCENT)))
+        .hover(|s| s.border_color(rgb(BORDER_BTN)))
         .on_click(cx.listener(move |this, _, _, cx| {
             action(this);
             cx.notify();

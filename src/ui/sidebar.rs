@@ -1,4 +1,3 @@
-use super::theme::{BORDER, PANEL};
 use crate::app::{CellSight, Dropdown};
 use cellsight_button::button;
 use cellsight_focus_profile::{FocusResolution, FocusView};
@@ -7,6 +6,7 @@ use cellsight_section_header::section_header;
 use cellsight_selector::selector;
 use cellsight_slider::{slider, stepped_slider};
 use cellsight_text_input::text_input;
+use cellsight_theme::{BORDER, PANEL};
 use gpui::{
     Animation, AnimationExt, Context, IntoElement, div, ease_out_quint, prelude::*, px, rgb,
 };
@@ -96,8 +96,8 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 ))
                 .with_animation(
                     "camera-reveal",
-                    Animation::new(Duration::from_millis(180)).with_easing(ease_out_quint()),
-                    |e, d| e.opacity(d),
+                    Animation::new(Duration::from_millis(110)).with_easing(ease_out_quint()),
+                    |e, d| e.max_h(px(300. * d)).overflow_hidden().opacity(d),
                 ),
         );
     }
@@ -323,8 +323,8 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 ))
                 .with_animation(
                     "capture-reveal",
-                    Animation::new(Duration::from_millis(180)).with_easing(ease_out_quint()),
-                    |e, d| e.opacity(d),
+                    Animation::new(Duration::from_millis(110)).with_easing(ease_out_quint()),
+                    |e, d| e.max_h(px(1200. * d)).overflow_hidden().opacity(d),
                 ),
         );
     }
@@ -356,8 +356,8 @@ pub(crate) fn render(app: &CellSight, cx: &mut Context<CellSight>) -> impl IntoE
                 ))
                 .with_animation(
                     "controls-reveal",
-                    Animation::new(Duration::from_millis(180)).with_easing(ease_out_quint()),
-                    |e, d| e.opacity(d),
+                    Animation::new(Duration::from_millis(110)).with_easing(ease_out_quint()),
+                    |e, d| e.max_h(px(500. * d)).overflow_hidden().opacity(d),
                 ),
         );
     }

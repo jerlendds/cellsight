@@ -1,11 +1,10 @@
 mod sidebar;
-mod theme;
 mod toolbar;
 mod viewport;
 
 use crate::app::CellSight;
+use cellsight_theme::TEXT;
 use gpui::{Context, IntoElement, KeyDownEvent, Render, Window, div, prelude::*, rgb};
-use theme::TEXT;
 
 impl Render for CellSight {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -49,6 +48,7 @@ impl Render for CellSight {
                 if redo {
                     if let Some(annotation) = this.undone_annotations.pop() {
                         this.annotations.push(annotation);
+                        this.selected_annotation = this.annotations.len().checked_sub(1);
                         this.editing_annotation = None;
                         cx.stop_propagation();
                         cx.notify();
@@ -57,6 +57,7 @@ impl Render for CellSight {
                     && let Some(annotation) = this.annotations.pop()
                 {
                     this.undone_annotations.push(annotation);
+                    this.selected_annotation = this.annotations.len().checked_sub(1);
                     this.editing_annotation = None;
                     cx.stop_propagation();
                     cx.notify();

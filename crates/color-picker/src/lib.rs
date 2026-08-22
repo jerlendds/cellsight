@@ -1,13 +1,10 @@
+use cellsight_theme::{ACCENT, ACTIVE_BTN, BORDER_BTN, CANVAS, SURFACE_BTN, TEXT};
 use gpui::{
     Animation, AnimationExt, Context, FocusHandle, IntoElement, KeyDownEvent, MouseButton,
     SharedString, deferred, div, ease_out_quint, prelude::*, px, rgb, svg,
 };
 use std::time::Duration;
 
-const ACCENT: u32 = 0x5cc8ff;
-const BORDER: u32 = 0x343c47;
-const PANEL: u32 = 0x161a20;
-const TEXT: u32 = 0xe7ecf2;
 const PANEL_HEIGHT: f32 = 224.;
 
 pub const HIGH_CONTRAST_COLORS: [u32; 11] = [
@@ -64,9 +61,17 @@ pub fn color_picker<T: 'static>(
         .justify_center()
         .rounded_md()
         .cursor_pointer()
-        .bg(if is_open { rgb(0x174b63) } else { rgb(PANEL) })
+        .bg(if is_open {
+            rgb(ACTIVE_BTN)
+        } else {
+            rgb(SURFACE_BTN)
+        })
         .border_1()
-        .border_color(if is_open { rgb(ACCENT) } else { rgb(BORDER) })
+        .border_color(if is_open {
+            rgb(ACCENT)
+        } else {
+            rgb(BORDER_BTN)
+        })
         .hover(|style| style.border_color(rgb(ACCENT)))
         .child(svg().data(palette_icon).size(px(18.)).text_color(rgb(TEXT)))
         .on_click(cx.listener(move |this, _, _, cx| {
@@ -90,8 +95,8 @@ pub fn color_picker<T: 'static>(
         .items_center()
         .rounded_md()
         .border_1()
-        .border_color(rgb(BORDER))
-        .bg(rgb(0x0d1116))
+        .border_color(rgb(BORDER_BTN))
+        .bg(rgb(CANVAS))
         .text_sm()
         .text_color(rgb(TEXT))
         .cursor_text()
@@ -132,9 +137,9 @@ pub fn color_picker<T: 'static>(
                 .border_color(if color == selected {
                     rgb(ACCENT)
                 } else {
-                    rgb(BORDER)
+                    rgb(BORDER_BTN)
                 })
-                .hover(|style| style.bg(rgb(0x20262e)))
+                .hover(|style| style.bg(rgb(ACTIVE_BTN)))
                 .child(div().size(px(22.)).rounded_sm().bg(rgb(color)))
                 .on_click(cx.listener(move |this, _, _, cx| {
                     select(this, color);

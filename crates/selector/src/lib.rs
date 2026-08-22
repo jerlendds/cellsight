@@ -83,9 +83,11 @@ pub fn selector<T: 'static>(
             menu = menu.child(
                 div()
                     .id((id, index))
+                    .min_w_0()
                     .h(px(34.))
                     .px_3()
                     .flex()
+                    .gap_2()
                     .items_center()
                     .justify_between()
                     .cursor_pointer()
@@ -96,8 +98,12 @@ pub fn selector<T: 'static>(
                         rgb(0x11151a)
                     })
                     .hover(|s| s.bg(rgb(SURFACE)))
-                    .child(option)
-                    .child(if index == selected { "✓" } else { "" })
+                    .child(div().min_w_0().flex_1().truncate().child(option))
+                    .child(
+                        div()
+                            .flex_none()
+                            .child(if index == selected { "✓" } else { "" }),
+                    )
                     .on_click(cx.listener(move |this, _, _, cx| {
                         select(this, index);
                         cx.notify();

@@ -9,6 +9,7 @@ use std::{
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Tool {
     Line,
+    Angle,
     Arrow,
     Pencil,
     Text,
@@ -90,6 +91,8 @@ pub(crate) struct CellSight {
     pub(crate) color_input_focus: Option<FocusHandle>,
     pub(crate) annotation_text_focus: Option<FocusHandle>,
     pub(crate) editing_annotation: Option<usize>,
+    pub(crate) selected_annotation: Option<usize>,
+    pub(crate) object_color_picker_open: bool,
     pub(crate) tool: Tool,
     pub(crate) drawing: bool,
     pub(crate) annotations: Vec<Annotation>,
@@ -157,6 +160,8 @@ impl CellSight {
             color_input_focus: None,
             annotation_text_focus: None,
             editing_annotation: None,
+            selected_annotation: None,
+            object_color_picker_open: false,
             tool: Tool::Pencil,
             drawing: false,
             annotations: Vec::new(),

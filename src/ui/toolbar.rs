@@ -1,7 +1,9 @@
-use super::theme::{ACCENT, BORDER, MUTED, PANEL, TEXT};
 use crate::app::{CellSight, Tool};
 use cellsight_color_picker::{color_picker, parse_color};
 use cellsight_icon_only_button::icon_only_button;
+use cellsight_theme::{
+    ACCENT, ACCENT_BTN, ACTIVE_BTN, BORDER, BORDER_BTN, MUTED, PANEL, SURFACE_BTN, TEXT,
+};
 use gpui::{
     Animation, AnimationExt, Context, IntoElement, div, ease_out_quint, prelude::*, px, rgb, svg,
 };
@@ -65,7 +67,7 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                         .overflow_hidden()
                         .child(
                             div()
-                                .w(px(160.))
+                                .w(px(202.))
                                 .flex_none()
                                 .flex()
                                 .gap_2()
@@ -78,6 +80,16 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                     app.tool == Tool::Line,
                                     cx,
                                     |s| s.tool = Tool::Line,
+                                ))
+                                .child(icon_only_button(
+                                    "angle-tool",
+                                    svg()
+                                        .data(include_bytes!("../assets/angle.svg"))
+                                        .size(px(18.))
+                                        .text_color(rgb(TEXT)),
+                                    app.tool == Tool::Angle,
+                                    cx,
+                                    |s| s.tool = Tool::Angle,
                                 ))
                                 .child(icon_only_button(
                                     "arrow-tool",
@@ -120,7 +132,7 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                 } else {
                                     1.0 - progress
                                 };
-                                element.w(px(160. * reveal)).opacity(reveal)
+                                element.w(px(202. * reveal)).opacity(reveal)
                             },
                         ),
                 )
@@ -200,15 +212,15 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                         .cursor_pointer()
                         .text_color(rgb(TEXT))
                         .bg(if annotations_open {
-                            rgb(0x174b63)
+                            rgb(ACTIVE_BTN)
                         } else {
-                            rgb(0x171c22)
+                            rgb(SURFACE_BTN)
                         })
                         .border_1()
                         .border_color(if annotations_open {
-                            rgb(ACCENT)
+                            rgb(ACCENT_BTN)
                         } else {
-                            rgb(BORDER)
+                            rgb(BORDER_BTN)
                         })
                         .hover(|s| s.border_color(rgb(ACCENT)))
                         .child(if annotations_open {

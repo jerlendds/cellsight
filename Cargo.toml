@@ -16,6 +16,8 @@ members = [
     "crates/selector",
     "crates/slider",
     "crates/text-input",
+    "crates/theme",
+    "crates/theme-ctl",
 ]
 
 [features]
@@ -34,6 +36,7 @@ cellsight-section-header = { path = "crates/section-header" }
 cellsight-selector = { path = "crates/selector" }
 cellsight-slider = { path = "crates/slider" }
 cellsight-text-input = { path = "crates/text-input" }
+cellsight-theme = { path = "crates/theme" }
 gpui = { path = "zed/crates/gpui", default-features = false }
 gpui_platform = { path = "zed/crates/gpui_platform", default-features = false }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
