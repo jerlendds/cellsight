@@ -4,7 +4,7 @@ mod toolbar;
 mod viewport;
 
 use crate::app::CellSight;
-use gpui::{Context, IntoElement, Render, Window, div, prelude::*, rgb};
+use gpui::{Context, IntoElement, KeyDownEvent, Render, Window, div, prelude::*, rgb};
 use theme::TEXT;
 
 impl Render for CellSight {
@@ -30,12 +30,38 @@ impl Render for CellSight {
         let sidebar = sidebar::render(self, cx);
         let viewport = viewport::render(self, cx);
         div()
+            .id("app-root")
             .size_full()
             .flex()
             .flex_col()
             .bg(rgb(0x0d1116))
             .text_color(rgb(TEXT))
             .font_family("Neometric")
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
+                let command =
+                    event.keystroke.modifiers.control || event.keystroke.modifiers.platform;
+                if !command {
+                    return;
+                }
+
+                let redo = event.keystroke.key == "y"
+                    || (event.keystroke.key == "z" && event.keystroke.modifiers.shift);
+                if redo {
+                    if let Some(annotation) = this.undone_annotations.pop() {
+                        this.annotations.push(annotation);
+                        this.editing_annotation = None;
+                        cx.stop_propagation();
+                        cx.notify();
+                    }
+                } else if event.keystroke.key == "z"
+                    && let Some(annotation) = this.annotations.pop()
+                {
+                    this.undone_annotations.push(annotation);
+                    this.editing_annotation = None;
+                    cx.stop_propagation();
+                    cx.notify();
+                }
+            }))
             .child(toolbar)
             .child(if self.focus_processing {
                 div()

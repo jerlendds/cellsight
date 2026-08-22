@@ -11,6 +11,7 @@ pub(crate) enum Tool {
     Line,
     Arrow,
     Pencil,
+    Text,
 }
 
 #[derive(Clone)]
@@ -18,6 +19,8 @@ pub(crate) struct Annotation {
     pub(crate) tool: Tool,
     pub(crate) color: u32,
     pub(crate) points: Vec<gpui::Point<Pixels>>,
+    pub(crate) text: SharedString,
+    pub(crate) size: f32,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -80,11 +83,17 @@ pub(crate) struct CellSight {
     pub(crate) annotations_open: bool,
     pub(crate) color_picker_open: bool,
     pub(crate) annotation_color: u32,
+    pub(crate) annotation_size: f32,
+    pub(crate) annotation_size_preview: Option<gpui::Point<Pixels>>,
+    pub(crate) annotation_size_preview_generation: u64,
     pub(crate) color_input: SharedString,
     pub(crate) color_input_focus: Option<FocusHandle>,
+    pub(crate) annotation_text_focus: Option<FocusHandle>,
+    pub(crate) editing_annotation: Option<usize>,
     pub(crate) tool: Tool,
     pub(crate) drawing: bool,
     pub(crate) annotations: Vec<Annotation>,
+    pub(crate) undone_annotations: Vec<Annotation>,
 }
 
 impl CellSight {
@@ -141,11 +150,17 @@ impl CellSight {
             annotations_open: false,
             color_picker_open: false,
             annotation_color: 0x00ffff,
+            annotation_size: 2.0,
+            annotation_size_preview: None,
+            annotation_size_preview_generation: 0,
             color_input: "#00FFFF".into(),
             color_input_focus: None,
+            annotation_text_focus: None,
+            editing_annotation: None,
             tool: Tool::Pencil,
             drawing: false,
             annotations: Vec::new(),
+            undone_annotations: Vec::new(),
         }
     }
 }

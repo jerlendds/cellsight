@@ -13,6 +13,8 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
         .color_input_focus
         .get_or_insert_with(|| cx.focus_handle())
         .clone();
+    app.annotation_text_focus
+        .get_or_insert_with(|| cx.focus_handle());
     let annotation_animation = if annotations_open {
         "annotations-opening"
     } else {
@@ -63,7 +65,7 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                         .overflow_hidden()
                         .child(
                             div()
-                                .w(px(118.))
+                                .w(px(160.))
                                 .flex_none()
                                 .flex()
                                 .gap_2()
@@ -96,6 +98,16 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                     app.tool == Tool::Pencil,
                                     cx,
                                     |s| s.tool = Tool::Pencil,
+                                ))
+                                .child(icon_only_button(
+                                    "text-tool",
+                                    svg()
+                                        .data(include_bytes!("../assets/text-size.svg"))
+                                        .size(px(18.))
+                                        .text_color(rgb(TEXT)),
+                                    app.tool == Tool::Text,
+                                    cx,
+                                    |s| s.tool = Tool::Text,
                                 )),
                         )
                         .with_animation(
@@ -108,13 +120,14 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                 } else {
                                     1.0 - progress
                                 };
-                                element.w(px(118. * reveal)).opacity(reveal)
+                                element.w(px(160. * reveal)).opacity(reveal)
                             },
                         ),
                 )
                 .child(
                     div()
                         .h(px(34.))
+                        .ml(px(8.))
                         .when(annotations_open, |element| {
                             element.child(color_picker(
                                 "annotation-color",
@@ -171,13 +184,14 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                                 } else {
                                     1.0 - progress
                                 };
-                                element.w(px(42. * reveal)).opacity(reveal)
+                                element.w(px(34. * reveal)).opacity(reveal)
                             },
                         ),
                 )
                 .child(
                     div()
                         .id("annotation-toggle")
+                        .ml(px(8.))
                         .size(px(34.))
                         .flex()
                         .items_center()
@@ -212,6 +226,7 @@ pub(crate) fn render(app: &mut CellSight, cx: &mut Context<CellSight>) -> impl I
                             this.annotations_open = !this.annotations_open;
                             if !this.annotations_open {
                                 this.color_picker_open = false;
+                                this.editing_annotation = None;
                             }
                             this.drawing = false;
                             cx.notify();
