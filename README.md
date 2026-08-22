@@ -28,4 +28,4 @@ This is a work in progress... come back later :)
 
 ## Preview
 
-![demo.mp4](https://github.com/user-attachments/assets/c439c01d-6356-4600-bb73-c1935e4c7321)
+[demo.mp4](https://github.com/user-attachments/assets/c439c01d-6356-4600-bb73-c1935e4c7321)
